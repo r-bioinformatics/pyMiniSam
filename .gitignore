@@ -1,0 +1,6 @@
+*.pyc
+*.ipynb
+*.c
+*.html
+*.so
+venv/

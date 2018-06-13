@@ -49,7 +49,7 @@ class AlignedRead(object):
         self.qual = qual
 
     def __repr__(self):
-        return f"{self.read_name}\t{self.flag}\t{self.ref}\t{self.coord}\t{self.mapq}\t{self.seq}\t{self.qual}"
+        return f"{self.read_name}\t{self.flag}\t{self.ref}\t{self.coord}\t{self.mapq}\t{self.seq}\t{self.qual}\t{self.cigar}"
 
 
 class pyMiniSam(object):
@@ -113,7 +113,8 @@ class pyMiniSam(object):
                                            read_name, cigar,
                                            seq, qual)
 
-                #print(aligned_read)
+                # print(aligned_read)
+                # return
                 #assert(pos == size_to_read)
 
         print(f"{count} records read in {time()-time0} seconds")

@@ -1,43 +1,33 @@
+#cython:
+cimport cython
+
 from libc.stdio cimport FILE
 from libc.stdio cimport *
 from libc.string cimport memset
-cimport cython
 
-BYTES_4 = 4
+cdef unsigned int BYTES_4 = 4
 
-CIGAR_CONVERT = {
-    0: 'M',
-    1: 'I',
-    2: 'D',
-    3: 'N',
-    4: 'S',
-    5: 'H',
-    6: 'P',
-    7: '=',
-    8: 'X',
-}
+cdef char cigar_convert(unsigned int a):
+    if a == 0:
+        return 'M'
+    elif a == 1:
+        return 'I'
+    elif a == 2:
+        return 'D'
+    elif a == 3:
+        return 'N'
+    elif a == 4:
+        return 'S'
+    elif a == 5:
+        return 'H'
+    elif a == 6:
+        return 'P'
+    elif a == 7:
+        return '='
+    elif a == 8:
+        return 'X'
 
-SEQ_CONVERT = {
-    0: '=',
-    1: 'A',
-    2: 'C',
-    3: 'M',
-    4: 'G',
-    5: 'R',
-    6: 'S',
-    7: 'V',
-    8: 'T',
-    9: 'W',
-    10: 'Y',
-    11: 'H',
-    12: 'K',
-    13: 'D',
-    14: 'B',
-    15: 'N',
-}
-
-
-cdef char seq_convert(int a):
+cdef char seq_convert(unsigned int a):
     if a == 0:
         return '='
     elif a == 1:
@@ -73,53 +63,76 @@ cdef char seq_convert(int a):
 
 
 
-cpdef get_bytes_from_list(object o, int start, int n_bytes):
+cdef unsigned int get_bytes_from_list_core(bytes o, unsigned int start, unsigned int n_bytes):
     cdef unsigned int myInt1 = 0
-    for i in range(n_bytes):
+    cdef unsigned int ONE = 1
+    cdef unsigned int ZERO = 0
+
+    cdef unsigned int i = 0
+    while i < n_bytes:
         myInt1 += o[start+i] << (i*8)
+        i += 1
+    return myInt1
+
+cpdef tuple get_bytes_from_list(bytes o, unsigned int start, unsigned int n_bytes):
+    myInt1 = get_bytes_from_list_core(o, start, n_bytes)
     return myInt1, start + n_bytes
 
 
-cpdef unsigned int get_bits_as_int_from_bam(object bam, int n_bytes):
+cpdef unsigned int get_bits_as_int_from_bam(object bam, unsigned int n_bytes):
     return int.from_bytes(bam.read(n_bytes), byteorder='little')
 
-cpdef get_string_from_list(object o, int start, int n_bytes):
+cpdef tuple get_string_from_list(bytes o, unsigned int start, unsigned int n_bytes):
     return o[start:start + n_bytes].decode('utf-8')[:-1], start + n_bytes
 
 
-cpdef get_cigar_from_list(object o, int start, int n_cigar_ops, int l_seq):
+cpdef tuple get_cigar_from_list(bytes o, unsigned int start, unsigned int n_cigar_ops, unsigned int ul_seq):
     # if n_cigar_ops == 2 and int.from_bytes(o[start], byteorder='little') == l_seq:
     #      return None, start + BYTES_4
 
-    cigar_ops = []
 
-    for n in range(n_cigar_ops):
-        op_start = (BYTES_4 * n) + start
+    cdef unsigned int op_start, op_end, op, bases
+    cdef unsigned int seq
+
+    cdef unsigned int n = 0
+    cigar_ops = []
+    while n < n_cigar_ops:
+        op_start = start + (BYTES_4 * n)
         op_end = op_start + BYTES_4
         seq = int.from_bytes(o[op_start:op_end], byteorder='little')
         bases = seq >> 4
         op = seq & 15
-        cigar_ops.append(str(bases) + CIGAR_CONVERT[op])
+        cigar_ops.append(str(bases))
+        cigar_ops.append(chr(cigar_convert(op)))
+        n += 1
 
-    return cigar_ops, start + (n_cigar_ops * BYTES_4)
+    return "".join(cigar_ops), start + (n_cigar_ops * BYTES_4)
 
 
-cpdef get_quality_from_list(object o, start, n_bytes):
+cpdef tuple get_quality_from_list(bytes o, unsigned int start, unsigned int n_bytes):
 
     cdef char quality[1000]
+    cdef unsigned int ONE = 1
+    cdef unsigned int ZERO = 0
     memset(quality, 0, n_bytes)
-    for x in range(n_bytes):
+    cdef unsigned int x = 0
+    while x < n_bytes:
         quality[x] = o[start + x] + 33
+        x += 1
     return quality[:n_bytes], start + n_bytes
 
 
-cpdef get_seq_from_list(object o, int start, int length):
+cpdef tuple get_seq_from_list(bytes o, unsigned int start, unsigned int length):
 
-    cdef int b, b1, b2, p=0
+    cdef unsigned int b, b1, b2, p=0
     cdef char c1, c2
     cdef char sequence[1000]
-    memset(sequence, 0, length)
-    for n in range(length):
+    # memset(sequence, 0, length)
+    cdef unsigned int ONE = 1
+    cdef unsigned int ZERO = 0
+
+    cdef unsigned int n = 0
+    while n < length:
 
         b = o[start + n]
         b1 = b >> 4
@@ -136,9 +149,10 @@ cpdef get_seq_from_list(object o, int start, int length):
         else:
             break
         p += 1
+        n+=1
 
     return sequence[:p], start + length
 
 
-cpdef get_extra_flags_from_bam(bam, start):
+cpdef tuple get_extra_flags_from_bam(bam, unsigned int start):
     return None, start
