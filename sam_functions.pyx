@@ -67,7 +67,7 @@ cdef char seq_convert(unsigned int a):
 
 
 
-cdef unsigned int get_bytes_from_list_core(bytes o, unsigned int start, int n_bytes):
+cdef unsigned int get_bytes_from_list_core(bytes o, int start, int n_bytes):
     cdef unsigned int myInt1 = 0
     cdef int i = 0
     while i < n_bytes:
@@ -75,15 +75,15 @@ cdef unsigned int get_bytes_from_list_core(bytes o, unsigned int start, int n_by
         i += 1
     return myInt1
 
-cdef unsigned int get_bytes_from_list(bytes o, unsigned int start, int n_bytes):
-    cdef unsigned int myInt1
+cdef int get_bytes_from_list(bytes o, int start, int n_bytes):
+    cdef int myInt1
     myInt1 = get_bytes_from_list_core(o, start, n_bytes)
     return myInt1
 
 
-cpdef unsigned int get_bits_as_int_from_bam(object bam,  int n_bytes):
+cpdef int get_bits_as_int_from_bam(object bam,  int n_bytes):
     cdef bytes temp
-    cdef unsigned int myInt1
+    cdef int myInt1
     cdef int i = 0
     temp = bam.read(n_bytes)
     if len(temp) < n_bytes:
@@ -94,7 +94,7 @@ cpdef unsigned int get_bits_as_int_from_bam(object bam,  int n_bytes):
         i += 1
     return myInt1
 
-cdef str get_string_from_list(bytes o, unsigned int start, int n_bytes):
+cdef str get_string_from_list(bytes o, int start, int n_bytes):
     if not o:
         return None, None
 
@@ -108,7 +108,7 @@ cdef str get_string_from_list(bytes o, unsigned int start, int n_bytes):
     return stringiness.decode('utf-8')
 
 
-cdef str get_cigar_from_list(bytes o, unsigned int start, unsigned int n_cigar_ops, int ul_seq):
+cdef str get_cigar_from_list(bytes o, int start, int n_cigar_ops, int ul_seq):
     # if n_cigar_ops == 2 and int.from_bytes(o[start], byteorder='little') == l_seq:
     #      return None, start + BYTES_4
 
@@ -116,7 +116,7 @@ cdef str get_cigar_from_list(bytes o, unsigned int start, unsigned int n_cigar_o
     cdef unsigned int op_start, op_end, op, bases
     cdef unsigned int seq
 
-    cdef unsigned int n = 0
+    cdef int n = 0
     cigar_ops = []
     while n < n_cigar_ops:
         op_start = start + (BYTES_4 * n)
@@ -131,7 +131,7 @@ cdef str get_cigar_from_list(bytes o, unsigned int start, unsigned int n_cigar_o
     return "".join(cigar_ops)
 
 
-cdef str get_quality_from_list(bytes o, unsigned int start, int n_bytes):
+cdef str get_quality_from_list(bytes o, int start, int n_bytes):
 
     cdef char quality[MAX_STR_SIZE]
     memset(quality, 0, MAX_STR_SIZE)
@@ -142,14 +142,14 @@ cdef str get_quality_from_list(bytes o, unsigned int start, int n_bytes):
     return quality[:n_bytes].decode('utf-8')
 
 
-cdef str get_seq_from_list(bytes o, unsigned int start, unsigned int length):
+cdef str get_seq_from_list(bytes o, int start, int length):
 
     cdef unsigned int b, b1, b2, p=0
     cdef char c1, c2
     cdef char sequence[MAX_STR_SIZE]
     # memset(sequence, 0, length)
 
-    cdef unsigned int n = 0
+    cdef int n = 0
     while n < length:
 
         b = o[start + n]
@@ -172,7 +172,7 @@ cdef str get_seq_from_list(bytes o, unsigned int start, unsigned int length):
     return sequence[:p].decode('utf-8')
 
 
-cpdef object get_extra_flags_from_bam(bam, unsigned int start):
+cpdef object get_extra_flags_from_bam(bam, int start):
     return None, start
 
 cpdef object get_read(object bam, dict references):
