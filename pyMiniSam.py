@@ -17,8 +17,6 @@ def parse_arguments(parser=None):
     return args
 
 
-
-
 class pyMiniSam(object):
 
     def __init__(self, args):
@@ -37,7 +35,7 @@ class pyMiniSam(object):
 
             for x in range(reference_sequences_count):
                 lname = get_bits_as_int_from_bam(bam, 4)
-                ref_name = bam.read(lname).decode("utf-8")[:-1]
+                ref_name = bam.read(lname)[:-1].decode('utf-8')
                 ref_lengh = get_bits_as_int_from_bam(bam, 4)
                 self.references[x] = {'name': ref_name, 'length': ref_lengh}
 

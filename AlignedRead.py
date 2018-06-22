@@ -1,3 +1,4 @@
+
 class AlignedRead(object):
 
     def __init__(self, ref, coord,
@@ -25,5 +26,5 @@ class AlignedRead(object):
         self.qual = qual
 
     def __repr__(self):
-        return f"{self.read_name}\t{self.flag}\t{self.ref}\t" \
-               f"{self.coord}\t{self.mapq}\t{self.seq}\t{self.qual}\t{self.cigar}"
+        return f"{self.read_name.decode('utf-8')}\t{self.flag}\t{self.ref.decode('utf-8')}\t" \
+               f"{self.coord}\t{self.mapq}\t{self.seq.decode('utf-8')}\t{self.qual.decode('utf-8')}\t{self.cigar.decode('utf-8')}"

@@ -1,16 +1,18 @@
-#cython:
+#cython: languagelevel=3, boundscheck=False, wraparound=False, nonecheck=False
+
 cimport cython
 
 from libc.stdio cimport FILE
 from libc.stdio cimport *
-from libc.string cimport memset
-from cpython cimport array
+from libc.stdlib cimport malloc, free
+from libc.string cimport strcpy
 
 from AlignedRead import AlignedRead
 
 DEF MAX_STR_SIZE = 1000
 cdef unsigned int BYTES_4 = 4
-
+cdef int BITS_PER_BYTE = 8
+cdef char QUAL_OFFSET = 33
 cdef char cigar_convert(unsigned int a):
     if a == 0:
         return 'M'
@@ -65,94 +67,100 @@ cdef char seq_convert(unsigned int a):
     elif a == 15:
         return 'N'
 
-
-
 cdef unsigned int get_bytes_from_list_core(bytes o, int start, int n_bytes):
-    cdef unsigned int myInt1 = 0
+    cdef long myInt1 = 0
     cdef int i = 0
     while i < n_bytes:
-        myInt1 += o[start+i] << (i*8)
+        myInt1 += <long>o[start+i] << (i*BITS_PER_BYTE)
         i += 1
-    return myInt1
+    return <unsigned int>myInt1
 
 cdef int get_bytes_from_list(bytes o, int start, int n_bytes):
     cdef int myInt1
     myInt1 = get_bytes_from_list_core(o, start, n_bytes)
     return myInt1
 
+cdef char* makestring(char* src, int length):
+    cdef char * c_string = <char *> malloc((length + 1) * sizeof(char))
+    if not c_string:
+        raise MemoryError()
+    strcpy(c_string, src)
+    return c_string
 
-cpdef int get_bits_as_int_from_bam(object bam,  int n_bytes):
+cpdef int get_bits_as_int_from_bam(object bam, int n_bytes):
     cdef bytes temp
     cdef int myInt1
     cdef int i = 0
     temp = bam.read(n_bytes)
-    if len(temp) < n_bytes:
+    if temp == b'':
         return 0
+    # if not temp or len(temp) < n_bytes:
+    #     return 0
 
     while i < n_bytes:
-        myInt1 += temp[i] << (i*8)
+        myInt1 += (<int>temp[i]) << (i*BITS_PER_BYTE)
         i += 1
     return myInt1
 
-cdef str get_string_from_list(bytes o, int start, int n_bytes):
-    if not o:
-        return None, None
+cdef char* get_string_from_list(bytes o, int start, int n_bytes):
 
-    cdef char[MAX_STR_SIZE] stringiness
-    memset(stringiness, 0, MAX_STR_SIZE)
     cdef int n = 0
+    cdef char* stringiness = <char *>malloc(n_bytes)
     while n < n_bytes:
-        stringiness[n] = o[start + n]
+        stringiness[n] = <char>o[start + n]
         n += 1
 
-    return stringiness.decode('utf-8')
+    #return makestring(stringiness, n_bytes)
+    return stringiness
 
 
-cdef str get_cigar_from_list(bytes o, int start, int n_cigar_ops, int ul_seq):
+cdef char* get_cigar_from_list(bytes o, int start, int n_cigar_ops, int ul_seq):
     # if n_cigar_ops == 2 and int.from_bytes(o[start], byteorder='little') == l_seq:
     #      return None, start + BYTES_4
 
 
-    cdef unsigned int op_start, op_end, op, bases
-    cdef unsigned int seq
+    cdef int op_start, op_end, op, bases
+    cdef int seq
+    cdef char *result
 
     cdef int n = 0
     cigar_ops = []
     while n < n_cigar_ops:
         op_start = start + (BYTES_4 * n)
         op_end = op_start + BYTES_4
-        seq = int.from_bytes(o[op_start:op_end], byteorder='little')
+        seq = get_bytes_from_list_core(o, op_start, BYTES_4)
         bases = seq >> 4
         op = seq & 15
         cigar_ops.append(str(bases))
         cigar_ops.append(chr(cigar_convert(op)))
         n += 1
 
-    return "".join(cigar_ops)
+    return makestring("".join(cigar_ops).encode('utf-8'), len(cigar_ops))
+    #return "".join(cigar_ops).encode('utf-8')
 
 
-cdef str get_quality_from_list(bytes o, int start, int n_bytes):
+cdef char* get_quality_from_list(bytes o, int start, int n_bytes):
 
-    cdef char quality[MAX_STR_SIZE]
-    memset(quality, 0, MAX_STR_SIZE)
+    cdef char * quality = <char *> malloc(n_bytes)
     cdef int x = 0
     while x < n_bytes:
-        quality[x] = o[start + x] + 33
+        quality[x] = <char>(o[start + x]) + QUAL_OFFSET
         x += 1
-    return quality[:n_bytes].decode('utf-8')
+    #return makestring(quality[:n_bytes], n_bytes)
+    return quality[:n_bytes]
 
 
-cdef str get_seq_from_list(bytes o, int start, int length):
+cdef char* get_seq_from_list(bytes o, int start, int length):
 
-    cdef unsigned int b, b1, b2, p=0
+    cdef int b, b1, b2, p=0
     cdef char c1, c2
-    cdef char sequence[MAX_STR_SIZE]
+    cdef char* sequence = <char *>malloc((length+1)*2)
     # memset(sequence, 0, length)
 
     cdef int n = 0
     while n < length:
 
-        b = o[start + n]
+        b = <int>o[start + n]
         b1 = b >> 4
         b2 = b & 15
         c1 = seq_convert(b1)
@@ -165,29 +173,42 @@ cdef str get_seq_from_list(bytes o, int start, int length):
         if c2 != '=':
             sequence[p] = c2
         else:
-            break
+            sequence[p] = '\0'
         p += 1
         n+=1
 
-    return sequence[:p].decode('utf-8')
+    # return makestring(sequence[:p], p)
+    return sequence
 
 
 cpdef object get_extra_flags_from_bam(bam, int start):
     return None, start
 
-cpdef object get_read(object bam, dict references):
+cpdef dict get_read(object bam, dict references):
 
     cdef bytes get_record
     cdef unsigned int pos = 0
-    cdef unsigned int size_to_read, ref_id, coord, l_read_name, mapq, bin, n_cigar_op, flag, l_seq, next_refID
+    cdef unsigned int size_to_read
+    cdef unsigned int ref_id
+    cdef unsigned int coord
+    cdef unsigned int l_read_name
+    cdef unsigned int mapq
+    cdef unsigned int bin_num
+    cdef unsigned int n_cigar_op
+    cdef unsigned int flag
+    cdef unsigned int l_seq
+    cdef unsigned int next_refID
     cdef unsigned int next_pos, tlen
-    cdef str read_name, cigar, seq, qual
-
-
+    cdef char* read_name
+    cdef char* cigar
+    cdef char* seq
+    cdef char* qual
 
     size_to_read = get_bits_as_int_from_bam(bam, 4)
     if size_to_read == 0:
+        print("end")
         return None
+
     get_record = bam.read(size_to_read)
 
     ref_id = get_bytes_from_list(get_record, pos, 4)
@@ -198,7 +219,7 @@ cpdef object get_read(object bam, dict references):
     pos += 1
     mapq = get_bytes_from_list(get_record, pos, 1)
     pos +=1
-    bin = get_bytes_from_list(get_record, pos, 2)
+    bin_num = get_bytes_from_list(get_record, pos, 2)
     pos += 2
     n_cigar_op = get_bytes_from_list(get_record, pos, 2)
     pos += 2
@@ -224,12 +245,38 @@ cpdef object get_read(object bam, dict references):
     # extra_flag, pos = get_extra_flags_from_bam(get_record, pos)
     #
     #
-    aligned_read = AlignedRead(references[ref_id]['name'], coord + 1,
-                               mapq, bin,
-                               flag, next_refID,
-                               next_pos, tlen,
-                               read_name, cigar,
-                               seq, qual)
+
+    aligned_read = {'ref': references[ref_id]['name'],
+                    'coord': coord + 1,
+                    'mapq': mapq,
+                    'bin': bin_num,
+                    'flag': flag,
+                    'next_refID': next_refID,
+                    'next_pos': next_pos,
+                    'tlen': tlen,
+                    'read_name': read_name,
+                    'cigar': cigar,
+                    'seq': seq,
+                    'qual': qual}
+
+
+    # aligned_read = AlignedRead(references[ref_id]['name'],
+    #                            coord + 1,
+    #                            mapq,
+    #                            bin_num,
+    #                            flag,
+    #                            next_refID,
+    #                            next_pos,
+    #                            tlen,
+    #                            read_name,
+    #                            cigar,
+    #                            seq,
+    #                            qual)
+
+    # free(read_name)
+    # free(cigar)
+    # free(seq)
+    # free(qual)
 
     return aligned_read
     # assert(pos == size_to_read)
