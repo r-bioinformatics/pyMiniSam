@@ -141,13 +141,14 @@ cdef char* get_cigar_from_list(bytes o, int start, int n_cigar_ops, int ul_seq):
 
 cdef char* get_quality_from_list(bytes o, int start, int n_bytes):
 
-    cdef char * quality = <char *> malloc(n_bytes)
+    cdef char * quality = <char *> malloc(n_bytes+1)
     cdef int x = 0
     while x < n_bytes:
         quality[x] = <char>(o[start + x]) + QUAL_OFFSET
         x += 1
+    quality[x] ='\0'
     #return makestring(quality[:n_bytes], n_bytes)
-    return quality[:n_bytes]
+    return quality
 
 
 cdef char* get_seq_from_list(bytes o, int start, int length):
@@ -206,7 +207,6 @@ cpdef dict get_read(object bam, dict references):
 
     size_to_read = get_bits_as_int_from_bam(bam, 4)
     if size_to_read == 0:
-        print("end")
         return None
 
     get_record = bam.read(size_to_read)
@@ -254,10 +254,10 @@ cpdef dict get_read(object bam, dict references):
                     'next_refID': next_refID,
                     'next_pos': next_pos,
                     'tlen': tlen,
-                    'read_name': read_name,
+                    'read_name': read_name.decode('utf-8'),
                     'cigar': cigar,
-                    'seq': seq,
-                    'qual': qual}
+                    'seq': seq.decode('utf-8'),
+                    'qual': qual.decode('utf-8')}
 
 
     # aligned_read = AlignedRead(references[ref_id]['name'],
@@ -273,10 +273,10 @@ cpdef dict get_read(object bam, dict references):
     #                            seq,
     #                            qual)
 
-    # free(read_name)
+    free(read_name)
     # free(cigar)
-    # free(seq)
-    # free(qual)
+    free(seq)
+    free(qual)
 
     return aligned_read
     # assert(pos == size_to_read)
