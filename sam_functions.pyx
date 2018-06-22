@@ -9,10 +9,12 @@ from libc.string cimport strcpy
 
 from AlignedRead import AlignedRead
 
-DEF MAX_STR_SIZE = 1000
+DEF MAX_STR_SIZE = 100
 cdef unsigned int BYTES_4 = 4
 cdef int BITS_PER_BYTE = 8
 cdef char QUAL_OFFSET = 33
+cdef char INT_TO_CHAR = 48
+
 cdef char cigar_convert(unsigned int a):
     if a == 0:
         return 'M'
@@ -113,6 +115,29 @@ cdef char* get_string_from_list(bytes o, int start, int n_bytes):
     #return makestring(stringiness, n_bytes)
     return stringiness
 
+@cython.cdivision(True)
+cdef int itoa_dest(int i, char* dest, int dest_pos):
+    cdef char rev[100]
+    cdef int digit_count = 0
+    cdef int digit_reverse = 0
+    while i >0:
+        digit = i % 10
+        rev[digit_count] = <char>digit + INT_TO_CHAR
+        digit_count += 1
+        i /= 10
+
+    digit_count -= 1
+    while digit_count >= 0:
+
+        dest[dest_pos + digit_reverse] = rev[digit_count]
+        digit_count -= 1
+        digit_reverse += 1
+
+    return dest_pos + digit_reverse
+
+
+
+
 
 cdef char* get_cigar_from_list(bytes o, int start, int n_cigar_ops, int ul_seq):
     # if n_cigar_ops == 2 and int.from_bytes(o[start], byteorder='little') == l_seq:
@@ -121,22 +146,24 @@ cdef char* get_cigar_from_list(bytes o, int start, int n_cigar_ops, int ul_seq):
 
     cdef int op_start, op_end, op, bases
     cdef int seq
-    cdef char *result
+    cdef char* result = <char *>malloc(MAX_STR_SIZE)
+    cdef char* str_pointer
+    cdef int result_pos = 0
 
     cdef int n = 0
-    cigar_ops = []
     while n < n_cigar_ops:
         op_start = start + (BYTES_4 * n)
         op_end = op_start + BYTES_4
         seq = get_bytes_from_list_core(o, op_start, BYTES_4)
         bases = seq >> 4
         op = seq & 15
-        cigar_ops.append(str(bases))
-        cigar_ops.append(chr(cigar_convert(op)))
+        result_pos = itoa_dest(bases, result, result_pos)
+        result[result_pos] = cigar_convert(op)
+        result_pos += 1
         n += 1
 
-    return makestring("".join(cigar_ops).encode('utf-8'), len(cigar_ops))
-    #return "".join(cigar_ops).encode('utf-8')
+    result[result_pos] = '\0'
+    return result
 
 
 cdef char* get_quality_from_list(bytes o, int start, int n_bytes):
@@ -155,7 +182,7 @@ cdef char* get_seq_from_list(bytes o, int start, int length):
 
     cdef int b, b1, b2, p=0
     cdef char c1, c2
-    cdef char* sequence = <char *>malloc((length+1)*2)
+    cdef char* sequence = <char *>malloc(((length+1)*2)+ 1)
     # memset(sequence, 0, length)
 
     cdef int n = 0
@@ -255,7 +282,7 @@ cpdef dict get_read(object bam, dict references):
                     'next_pos': next_pos,
                     'tlen': tlen,
                     'read_name': read_name.decode('utf-8'),
-                    'cigar': cigar,
+                    'cigar': cigar.decode('utf-8'),
                     'seq': seq.decode('utf-8'),
                     'qual': qual.decode('utf-8')}
 
@@ -274,7 +301,7 @@ cpdef dict get_read(object bam, dict references):
     #                            qual)
 
     free(read_name)
-    # free(cigar)
+    free(cigar)
     free(seq)
     free(qual)
 
