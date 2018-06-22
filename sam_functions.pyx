@@ -7,8 +7,6 @@ from libc.stdio cimport *
 from libc.stdlib cimport malloc, free
 from libc.string cimport strcpy
 
-from AlignedRead import AlignedRead
-
 DEF MAX_STR_SIZE = 100
 cdef unsigned int BYTES_4 = 4
 cdef int BITS_PER_BYTE = 8
@@ -285,20 +283,6 @@ cpdef dict get_read(object bam, dict references):
                     'cigar': cigar.decode('utf-8'),
                     'seq': seq.decode('utf-8'),
                     'qual': qual.decode('utf-8')}
-
-
-    # aligned_read = AlignedRead(references[ref_id]['name'],
-    #                            coord + 1,
-    #                            mapq,
-    #                            bin_num,
-    #                            flag,
-    #                            next_refID,
-    #                            next_pos,
-    #                            tlen,
-    #                            read_name,
-    #                            cigar,
-    #                            seq,
-    #                            qual)
 
     free(read_name)
     free(cigar)
