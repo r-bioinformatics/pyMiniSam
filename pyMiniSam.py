@@ -1,6 +1,8 @@
 import gzip
 import argparse
+import io
 from time import time
+from subprocess import Popen, PIPE
 
 # import pyximport; pyximport.install()
 from sam_functions import get_bits_as_int_from_bam
@@ -26,25 +28,31 @@ class pyMiniSam(object):
     def read_compressed_file(self):
         count = 0
         time0 = time()
-        with gzip.open(self.filename, "rb") as bam:
+
+        p = Popen(["gunzip", "-c", self.filename], stdout=PIPE)
+        bam = io.BytesIO(p.communicate()[0])
+        if p.returncode != 0:
+
+            print("Something went wrong")
+            return None
             # read headers
-            data = bam.read(4)
-            header_len = get_bits_as_int_from_bam(bam, 4)
-            header_text = bam.read(header_len).decode("utf-8")[:-1]
-            reference_sequences_count = get_bits_as_int_from_bam(bam, 4)
+        data = bam.read(4)
+        header_len = get_bits_as_int_from_bam(bam, 4)
+        header_text = bam.read(header_len).decode("utf-8")[:-1]
+        reference_sequences_count = get_bits_as_int_from_bam(bam, 4)
 
-            for x in range(reference_sequences_count):
-                lname = get_bits_as_int_from_bam(bam, 4)
-                ref_name = bam.read(lname)[:-1].decode('utf-8')
-                ref_lengh = get_bits_as_int_from_bam(bam, 4)
-                self.references[x] = {'name': ref_name, 'length': ref_lengh}
+        for x in range(reference_sequences_count):
+            lname = get_bits_as_int_from_bam(bam, 4)
+            ref_name = bam.read(lname)[:-1].decode('utf-8')
+            ref_lengh = get_bits_as_int_from_bam(bam, 4)
+            self.references[x] = {'name': ref_name, 'length': ref_lengh}
 
-            while True:
-                read = get_read(bam, self.references)
-                if read is None:
-                    break
-                print(read)
-                count += 1
+        while True:
+            read = get_read(bam, self.references)
+            if read is None:
+                break
+            print(read)
+            count += 1
 
         print(f"{count} records read in {time()-time0} seconds")
 

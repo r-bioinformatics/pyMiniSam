@@ -80,12 +80,6 @@ cdef int get_bytes_from_list(bytes o, int start, int n_bytes):
     myInt1 = get_bytes_from_list_core(o, start, n_bytes)
     return myInt1
 
-cdef char* makestring(char* src, int length):
-    cdef char * c_string = <char *> malloc((length + 1) * sizeof(char))
-    if not c_string:
-        raise MemoryError()
-    strcpy(c_string, src)
-    return c_string
 
 cpdef int get_bits_as_int_from_bam(object bam, int n_bytes):
     cdef bytes temp
@@ -132,9 +126,6 @@ cdef int itoa_dest(int i, char* dest, int dest_pos):
         digit_reverse += 1
 
     return dest_pos + digit_reverse
-
-
-
 
 
 cdef char* get_cigar_from_list(bytes o, int start, int n_cigar_ops, int ul_seq):
