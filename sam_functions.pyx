@@ -1,17 +1,21 @@
 #cython: languagelevel=3, boundscheck=False, wraparound=False, nonecheck=False
 
 cimport cython
+from cpython cimport array
 
 from libc.stdio cimport FILE
 from libc.stdio cimport *
 from libc.stdlib cimport malloc, free
 from libc.string cimport strcpy
+from libc.string cimport memset
 
 DEF MAX_STR_SIZE = 100
 cdef unsigned int BYTES_4 = 4
 cdef int BITS_PER_BYTE = 8
 cdef char QUAL_OFFSET = 33
 cdef char INT_TO_CHAR = 48
+cdef int ONE_INT = 1
+cdef int ZERO = 0
 
 cdef char cigar_convert(unsigned int a):
     if a == 0:
@@ -67,7 +71,14 @@ cdef char seq_convert(unsigned int a):
     elif a == 15:
         return 'N'
 
-cdef unsigned int get_bytes_from_list_core(bytes o, int start, int n_bytes):
+
+cdef struct cigar_struct:
+    int end
+    char* cigar_string
+    int* positions
+    int pos_len
+
+cdef unsigned int get_bytes_from_list_core(bytes o, int start, int n_bytes) nogil:
     cdef long myInt1 = 0
     cdef int i = 0
     while i < n_bytes:
@@ -108,10 +119,11 @@ cdef char* get_string_from_list(bytes o, int start, int n_bytes):
     return stringiness
 
 @cython.cdivision(True)
-cdef int itoa_dest(int i, char* dest, int dest_pos):
-    cdef char rev[100]
+cdef int itoa_dest(int i, char* dest, int dest_pos) nogil:
+    cdef char rev[MAX_STR_SIZE]
     cdef int digit_count = 0
     cdef int digit_reverse = 0
+
     while i >0:
         digit = i % 10
         rev[digit_count] = <char>digit + INT_TO_CHAR
@@ -128,30 +140,53 @@ cdef int itoa_dest(int i, char* dest, int dest_pos):
     return dest_pos + digit_reverse
 
 
-cdef char* get_cigar_from_list(bytes o, int start, int n_cigar_ops, int ul_seq):
+cdef cigar_struct get_cigar_from_list(bytes o, int start, int n_cigar_ops, int l_seq, int coord):
     # if n_cigar_ops == 2 and int.from_bytes(o[start], byteorder='little') == l_seq:
     #      return None, start + BYTES_4
 
-
-    cdef int op_start, op_end, op, bases
+    cdef cigar_struct result
+    cdef int op_start, op_end, bases
     cdef int seq
-    cdef char* result = <char *>malloc(MAX_STR_SIZE)
     cdef char* str_pointer
-    cdef int result_pos = 0
+    cdef int cigar_string_pos = 0
+    cdef int sum_pos = 0
+    cdef int n = 0  # op_count
+    cdef int p = 0  # positions index
+    cdef int i = 0  # iterator
+    cdef char op, op_type
+    with nogil:
+        result.cigar_string = <char *>malloc((l_seq+1)* sizeof(char))
+        result.positions = <int *>malloc((l_seq*+1) * sizeof(int))
+        memset(result.positions, 0, (l_seq+1)*sizeof(int))
 
-    cdef int n = 0
-    while n < n_cigar_ops:
-        op_start = start + (BYTES_4 * n)
-        op_end = op_start + BYTES_4
-        seq = get_bytes_from_list_core(o, op_start, BYTES_4)
-        bases = seq >> 4
-        op = seq & 15
-        result_pos = itoa_dest(bases, result, result_pos)
-        result[result_pos] = cigar_convert(op)
-        result_pos += 1
-        n += 1
 
-    result[result_pos] = '\0'
+        while n < n_cigar_ops:
+            op_start = start + (BYTES_4 * n)
+            op_end = op_start + BYTES_4
+            seq = get_bytes_from_list_core(o, op_start, BYTES_4)
+            bases = seq >> 4
+            op = seq & 15
+
+            cigar_string_pos = itoa_dest(bases, result.cigar_string, cigar_string_pos)
+            op_type = cigar_convert(op)
+            result.cigar_string[cigar_string_pos] = op_type
+
+            if op_type == 'M': # or op_type == 'D' or op_type == '=' :
+                for i in range(bases):
+                    result.positions[p] = coord + i + sum_pos + ONE_INT
+                    p += 1
+
+            if op_type != 'H' and op_type != 'S':
+                sum_pos = sum_pos + bases
+
+            cigar_string_pos += 1
+            n += 1
+
+
+        result.pos_len = p
+        result.end = sum_pos + coord
+        result.cigar_string[cigar_string_pos] = '\0'
+
     return result
 
 
@@ -172,7 +207,7 @@ cdef char* get_seq_from_list(bytes o, int start, int length):
     cdef int b, b1, b2, p=0
     cdef char c1, c2
     cdef char* sequence = <char *>malloc(((length+1)*2)+ 1)
-    # memset(sequence, 0, length)
+    memset(sequence, 0, ((length+1)*2)+ 1)
 
     cdef int n = 0
     while n < length:
@@ -185,7 +220,7 @@ cdef char* get_seq_from_list(bytes o, int start, int length):
         if c1 != '=':
             sequence[p] = c1
         else:
-            break
+            sequence[p] = '\0'
         p += 1
         if c2 != '=':
             sequence[p] = c2
@@ -193,7 +228,6 @@ cdef char* get_seq_from_list(bytes o, int start, int length):
             sequence[p] = '\0'
         p += 1
         n+=1
-
     # return makestring(sequence[:p], p)
     return sequence
 
@@ -220,7 +254,7 @@ cpdef dict get_read(object bam, dict references):
     cdef char* cigar
     cdef char* seq
     cdef char* qual
-
+    cdef int p = 0
     size_to_read = get_bits_as_int_from_bam(bam, 4)
     if size_to_read == 0:
         return None
@@ -251,7 +285,7 @@ cpdef dict get_read(object bam, dict references):
     pos += 4
     read_name = get_string_from_list(get_record, pos, l_read_name)
     pos += l_read_name
-    cigar = get_cigar_from_list(get_record, pos, n_cigar_op, l_seq)
+    cigar_struct = get_cigar_from_list(get_record, pos, n_cigar_op, l_seq, coord)
     pos += (n_cigar_op * BYTES_4)
     seq = get_seq_from_list(get_record, pos, (l_seq + 1) // 2)
     pos += (l_seq +1)//2
@@ -263,7 +297,9 @@ cpdef dict get_read(object bam, dict references):
     #
 
     aligned_read = {'ref': references[ref_id]['name'],
-                    'coord': coord + 1,
+                    'start': coord + 1,
+                    'end': cigar_struct.end,
+                    'positions': [cigar_struct.positions[p] for p in range(<int>l_seq) if cigar_struct.positions[p] != 0],
                     'mapq': mapq,
                     'bin': bin_num,
                     'flag': flag,
@@ -271,14 +307,19 @@ cpdef dict get_read(object bam, dict references):
                     'next_pos': next_pos,
                     'tlen': tlen,
                     'read_name': read_name.decode('utf-8'),
-                    'cigar': cigar.decode('utf-8'),
+                    'cigar': cigar_struct.cigar_string.decode('utf-8'),
                     'seq': seq.decode('utf-8'),
                     'qual': qual.decode('utf-8')}
 
-    free(read_name)
-    free(cigar)
-    free(seq)
-    free(qual)
+
+
+    # free(read_name)
+    # free(cigar_struct.positions)
+    # free(cigar_struct.cigar_string)
+    #
+    # free(seq)
+    # free(qual)
 
     return aligned_read
+
     # assert(pos == size_to_read)

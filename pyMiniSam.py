@@ -1,6 +1,5 @@
 import gzip
 import argparse
-import io
 from time import time
 from subprocess import Popen, PIPE
 
@@ -21,46 +20,48 @@ def parse_arguments(parser=None):
 
 class pyMiniSam(object):
 
-    def __init__(self, args):
-        self.filename = args.filename
+    def __init__(self, filename):
+        self.filename = filename
         self.references = {}
 
-    def read_compressed_file(self):
+        self.p = Popen(["gunzip", "-c", self.filename], stdout=PIPE)
+        self.pipe = self.p.stdout
+        data = self.pipe.read(4)
+        header_len = get_bits_as_int_from_bam(self.pipe, 4)
+        header_text = self.pipe.read(header_len).decode("utf-8")[:-1]
+        self.reference_sequences_count = get_bits_as_int_from_bam(self.pipe, 4)
+
+        for x in range(self.reference_sequences_count):
+            lname = get_bits_as_int_from_bam(self.pipe, 4)
+            ref_name = self.pipe.read(lname)[:-1].decode('utf-8')
+            ref_lengh = get_bits_as_int_from_bam(self.pipe, 4)
+            self.references[x] = {'name': ref_name, 'length': ref_lengh}
+
+    def get_reads(self):
         count = 0
         time0 = time()
 
-        p = Popen(["gunzip", "-c", self.filename], stdout=PIPE)
-        bam = io.BytesIO(p.communicate()[0])
-        if p.returncode != 0:
-
-            print("Something went wrong")
-            return None
-            # read headers
-        data = bam.read(4)
-        header_len = get_bits_as_int_from_bam(bam, 4)
-        header_text = bam.read(header_len).decode("utf-8")[:-1]
-        reference_sequences_count = get_bits_as_int_from_bam(bam, 4)
-
-        for x in range(reference_sequences_count):
-            lname = get_bits_as_int_from_bam(bam, 4)
-            ref_name = bam.read(lname)[:-1].decode('utf-8')
-            ref_lengh = get_bits_as_int_from_bam(bam, 4)
-            self.references[x] = {'name': ref_name, 'length': ref_lengh}
-
         while True:
-            read = get_read(bam, self.references)
+            read = get_read(self.pipe, self.references)
             if read is None:
                 break
-            print(read)
+            yield read
             count += 1
 
         print(f"{count} records read in {time()-time0} seconds")
+        self.close()
+
+    def close(self):
+        self.p.terminate()
 
 
 def main():
     args = parse_arguments()
-    default_class = pyMiniSam(args)
-    default_class.read_compressed_file()
+    pyminisam = pyMiniSam(args.filename)
+    reads = pyminisam.get_reads()
+    for read in reads:
+        print(read)
+
 
 
 if __name__ == '__main__':
