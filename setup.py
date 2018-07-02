@@ -1,4 +1,5 @@
 from distutils.core import setup
 from Cython.Build import cythonize
 
-setup(ext_modules=cythonize("sam_functions.pyx", annotate=True))
+setup(name='pyMiniSam',
+      ext_modules=cythonize("sam_functions.pyx", annotate=True))
