@@ -33,9 +33,9 @@ class pyMiniSam(object):
 
         for x in range(self.reference_sequences_count):
             lname = get_bits_as_int_from_bam(self.pipe, 4)
-            ref_name = self.pipe.read(lname)[:-1].decode('utf-8')
+            ref_name = self.pipe.read(lname)[:-1]
             ref_lengh = get_bits_as_int_from_bam(self.pipe, 4)
-            self.references[x] = {'name': ref_name, 'length': ref_lengh}
+            self.references[x] = {'name': ref_name.decode('utf-8'), 'length': ref_lengh}
 
     def get_reads(self):
         count = 0
@@ -61,6 +61,7 @@ def main():
     reads = pyminisam.get_reads()
     for read in reads:
         print(read)
+        # print(read['ref'])
 
 
 

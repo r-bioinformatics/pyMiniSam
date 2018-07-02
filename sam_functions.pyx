@@ -1,7 +1,6 @@
 #cython: languagelevel=3, boundscheck=False, wraparound=False, nonecheck=False
 
 cimport cython
-from cpython cimport array
 
 from libc.stdio cimport FILE
 from libc.stdio cimport *
@@ -17,7 +16,8 @@ cdef char INT_TO_CHAR = 48
 cdef int ONE_INT = 1
 cdef int ZERO = 0
 
-cdef char cigar_convert(unsigned int a):
+@cython.optimize.use_switch(True)
+cdef char cigar_convert(unsigned int a) nogil:
     if a == 0:
         return 'M'
     elif a == 1:
@@ -37,7 +37,8 @@ cdef char cigar_convert(unsigned int a):
     elif a == 8:
         return 'X'
 
-cdef char seq_convert(unsigned int a):
+@cython.optimize.use_switch(True)
+cdef char seq_convert(unsigned int a) nogil:
     if a == 0:
         return '='
     elif a == 1:
@@ -78,7 +79,7 @@ cdef struct cigar_struct:
     int* positions
     int pos_len
 
-cdef unsigned int get_bytes_from_list_core(bytes o, int start, int n_bytes) nogil:
+cdef unsigned int get_bytes_from_list_core(bytes o, int start, int n_bytes):
     cdef long myInt1 = 0
     cdef int i = 0
     while i < n_bytes:
@@ -99,9 +100,6 @@ cpdef int get_bits_as_int_from_bam(object bam, int n_bytes):
     temp = bam.read(n_bytes)
     if temp == b'':
         return 0
-    # if not temp or len(temp) < n_bytes:
-    #     return 0
-
     while i < n_bytes:
         myInt1 += (<int>temp[i]) << (i*BITS_PER_BYTE)
         i += 1
@@ -123,7 +121,6 @@ cdef int itoa_dest(int i, char* dest, int dest_pos) nogil:
     cdef char rev[MAX_STR_SIZE]
     cdef int digit_count = 0
     cdef int digit_reverse = 0
-
     while i >0:
         digit = i % 10
         rev[digit_count] = <char>digit + INT_TO_CHAR
@@ -154,38 +151,37 @@ cdef cigar_struct get_cigar_from_list(bytes o, int start, int n_cigar_ops, int l
     cdef int p = 0  # positions index
     cdef int i = 0  # iterator
     cdef char op, op_type
-    with nogil:
-        result.cigar_string = <char *>malloc((l_seq+1)* sizeof(char))
-        result.positions = <int *>malloc((l_seq*+1) * sizeof(int))
-        memset(result.positions, 0, (l_seq+1)*sizeof(int))
+    result.cigar_string = <char *>malloc((l_seq+1)* sizeof(char))
+    result.positions = <int *>malloc((l_seq*+1) * sizeof(int))
+    memset(result.positions, 0, (l_seq+1)*sizeof(int))
 
 
-        while n < n_cigar_ops:
-            op_start = start + (BYTES_4 * n)
-            op_end = op_start + BYTES_4
-            seq = get_bytes_from_list_core(o, op_start, BYTES_4)
-            bases = seq >> 4
-            op = seq & 15
+    while n < n_cigar_ops:
+        op_start = start + (BYTES_4 * n)
+        op_end = op_start + BYTES_4
+        seq = get_bytes_from_list_core(o, op_start, BYTES_4)
+        bases = seq >> 4
+        op = seq & 15
 
-            cigar_string_pos = itoa_dest(bases, result.cigar_string, cigar_string_pos)
-            op_type = cigar_convert(op)
-            result.cigar_string[cigar_string_pos] = op_type
+        cigar_string_pos = itoa_dest(bases, result.cigar_string, cigar_string_pos)
+        op_type = cigar_convert(op)
+        result.cigar_string[cigar_string_pos] = op_type
 
-            if op_type == 'M': # or op_type == 'D' or op_type == '=' :
-                for i in range(bases):
-                    result.positions[p] = coord + i + sum_pos + ONE_INT
-                    p += 1
+        if op_type == 'M': # or op_type == 'D' or op_type == '=' :
+            for i in range(bases):
+                result.positions[p] = coord + i + sum_pos + ONE_INT
+                p += 1
 
-            if op_type != 'H' and op_type != 'S':
-                sum_pos = sum_pos + bases
+        if op_type != 'H' and op_type != 'S':
+            sum_pos = sum_pos + bases
 
-            cigar_string_pos += 1
-            n += 1
+        cigar_string_pos += 1
+        n += 1
 
 
-        result.pos_len = p
-        result.end = sum_pos + coord
-        result.cigar_string[cigar_string_pos] = '\0'
+    result.pos_len = p
+    result.end = sum_pos + coord
+    result.cigar_string[cigar_string_pos] = '\0'
 
     return result
 
@@ -234,6 +230,7 @@ cdef char* get_seq_from_list(bytes o, int start, int length):
 
 cpdef object get_extra_flags_from_bam(bam, int start):
     return None, start
+
 
 cpdef dict get_read(object bam, dict references):
 
@@ -296,10 +293,10 @@ cpdef dict get_read(object bam, dict references):
     #
     #
 
-    aligned_read = {'ref': references[ref_id]['name'],
+    aligned_read = {'reference_name': references[ref_id]['name'],
                     'start': coord + 1,
                     'end': cigar_struct.end,
-                    'positions': [cigar_struct.positions[p] for p in range(<int>l_seq) if cigar_struct.positions[p] != 0],
+                    'positions': [cigar_struct.positions[p] for p in range(cigar_struct.pos_len)],
                     'mapq': mapq,
                     'bin': bin_num,
                     'flag': flag,
