@@ -20,20 +20,19 @@ if USE_CYTHON:
     ext_modules += [
         Extension("pyMiniSam",
                   sources=["sam_functions.pyx"],
-                  librarires=["pyMiniSam"]),
     ]
     cmd_class.update({'build_ext': build_ext})
 else:
     ext_modules += [
         Extension("pyMiniSam",
-                  sources=["sam_functions.pyx"],
-                  librarires=["pyMiniSam"]),
+                  sources=["sam_functions.pyx"]
     ]
 
 setup(name='pyMiniSam',
       version=1.0,
       author="apfejes",
       long_description=open('README.txt').read(),
+      packages=[],
       cmdclass={'build_ext': build_ext},
       zip_safe=False,
       ext_modules=cythonize(ext_modules, annotate=True))
