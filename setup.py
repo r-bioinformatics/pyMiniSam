@@ -20,14 +20,14 @@ if USE_CYTHON:
     ext_modules += [
         Extension("pyMiniSam.sam_functions",
                   sources=["sam_functions.pyx"],
-                  librarires=),
+                  librarires=["pyMiniSam"]),
     ]
     cmd_class.update({'build_ext': build_ext})
 else:
     ext_modules += [
         Extension("pyMiniSam.sam_functions",
                   sources=["sam_functions.pyx"],
-                  librarires=),
+                  librarires=["pyMiniSam"]),
     ]
 
 setup(name='pyMiniSam',
