@@ -1,0 +1,1 @@
+This is an experimental, cython version of pySAM, implemented based soleley on the SAM/BAM format document.
