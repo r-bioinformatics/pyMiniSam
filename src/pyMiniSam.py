@@ -1,11 +1,11 @@
-import gzip
 import argparse
 from time import time
 from subprocess import Popen, PIPE
 
-# import pyximport; pyximport.install()
-from sam_functions import get_bits_as_int_from_bam
-from sam_functions import get_read
+import pyximport
+pyximport.install()
+from cy_src.sam_functions import get_bits_as_int_from_bam
+from cy_src.sam_functions import get_read
 
 
 def parse_arguments(parser=None):
