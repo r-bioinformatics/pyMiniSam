@@ -1,6 +1,6 @@
 from setuptools import setup, find_packages
 from Cython.Build import cythonize
-
+from setuptools.extension import Extension
 USE_CYTHON = True
 
 cmd_class = {}
