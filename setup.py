@@ -29,6 +29,7 @@ else:
     ]
 
 setup(name='pyMiniSam',
+      setuyp_requires=['cython'],
       version=1.0,
       author="apfejes",
       long_description=open('README.txt').read(),
