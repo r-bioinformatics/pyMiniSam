@@ -1,6 +1,5 @@
-from distutils.core import setup
+from setuptools import setup, find_packages
 from Cython.Build import cythonize
-from distutils.extension import Extension
 
 USE_CYTHON = True
 
@@ -34,6 +33,6 @@ setup(name='pyMiniSam',
       author="apfejes",
       long_description=open('README.txt').read(),
       cmdclass={'build_ext': build_ext},
-      packages=['pyMiniSam',],
+      packages=find_packages(),
       zip_safe=False,
       ext_modules=cythonize(ext_modules, annotate=True))
