@@ -34,6 +34,6 @@ setup(name='pyMiniSam',
       author="apfejes",
       long_description=open('README.txt').read(),
       cmdclass={'build_ext': build_ext},
-      packages=['pyMiniSam'],
+      packages=['pyMiniSam',],
       zip_safe=False,
       ext_modules=cythonize(ext_modules, annotate=True))
