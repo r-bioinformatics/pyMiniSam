@@ -35,5 +35,4 @@ setup(name='pyMiniSam',
       cmdclass={'build_ext': build_ext},
       packages=find_packages(),
       zip_safe=False,
-      include_package_data=True,
       ext_modules=cythonize(ext_modules, annotate=True))
