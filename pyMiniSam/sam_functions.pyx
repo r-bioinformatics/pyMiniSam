@@ -172,7 +172,7 @@ cdef cigar_struct get_cigar_from_list(bytes o, int start, int n_cigar_ops, int l
                 result.positions[p] = coord + i + sum_pos
                 p += 1
 
-        if op_type != 'H' and op_type != 'S':
+        if op_type != 'H' and op_type != 'S' and op_type != 'I':
             sum_pos = sum_pos + bases
 
         cigar_string_pos += 1
