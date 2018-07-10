@@ -1,7 +1,13 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <project version="4">
   <component name="ChangeListManager">
-    <list default="true" id="ba986314-46cf-4586-aed4-ca6d4986a8e2" name="Default" comment="" />
+    <list default="true" id="ba986314-46cf-4586-aed4-ca6d4986a8e2" name="Default" comment="">
+      <change afterPath="$PROJECT_DIR$/tests/__init__.py" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/tests/pyMiniSam/__init__.py" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/tests/pyMiniSam/test_pyMiniSam.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/pyMiniSam/sam_functions.pyx" beforeDir="false" afterPath="$PROJECT_DIR$/pyMiniSam/sam_functions.pyx" afterDir="false" />
+    </list>
     <option name="EXCLUDED_CONVERTED_TO_IGNORED" value="true" />
     <option name="TRACKING_ENABLED" value="true" />
     <option name="SHOW_DIALOG" value="false" />
@@ -313,6 +319,7 @@
   </component>
   <component name="ToolWindowManager">
     <frame x="505" y="23" width="1094" height="1108" extended-state="1" />
+    <editor active="true" />
     <layout>
       <window_info active="true" content_ui="combo" id="Project" order="0" visible="true" weight="0.3858341" />
       <window_info anchor="bottom" id="TODO" order="6" />

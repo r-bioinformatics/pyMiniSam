@@ -169,7 +169,7 @@ cdef cigar_struct get_cigar_from_list(bytes o, int start, int n_cigar_ops, int l
 
         if op_type == 'M': # or op_type == 'D' or op_type == '=' :
             for i in range(bases):
-                result.positions[p] = coord + i + sum_pos + ONE_INT
+                result.positions[p] = coord + i + sum_pos
                 p += 1
 
         if op_type != 'H' and op_type != 'S':
@@ -294,7 +294,7 @@ cpdef dict get_read(object bam, dict references):
     #
 
     aligned_read = {'reference_name': references[ref_id]['name'],
-                    'start': coord + 1,
+                    'start': coord,
                     'end': cigar_struct.end,
                     'positions': [cigar_struct.positions[p] for p in range(cigar_struct.pos_len)],
                     'mapq': mapq,
