@@ -2,11 +2,7 @@
 <project version="4">
   <component name="ChangeListManager">
     <list default="true" id="ba986314-46cf-4586-aed4-ca6d4986a8e2" name="Default" comment="">
-      <change afterPath="$PROJECT_DIR$/tests/__init__.py" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/tests/pyMiniSam/__init__.py" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/tests/pyMiniSam/test_pyMiniSam.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/pyMiniSam/sam_functions.pyx" beforeDir="false" afterPath="$PROJECT_DIR$/pyMiniSam/sam_functions.pyx" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/tests/pyMiniSam/test_pyMiniSam.py" beforeDir="false" afterPath="$PROJECT_DIR$/tests/pyMiniSam/test_pyMiniSam.py" afterDir="false" />
     </list>
     <option name="EXCLUDED_CONVERTED_TO_IGNORED" value="true" />
     <option name="TRACKING_ENABLED" value="true" />
