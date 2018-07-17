@@ -26,9 +26,9 @@ class pyMiniSam(object):
 
         self.p = Popen(["gunzip", "-c", self.filename], stdout=PIPE)
         self.pipe = self.p.stdout
-        data = self.pipe.read(4)
-        header_len = get_bits_as_int_from_bam(self.pipe, 4)
-        header_text = self.pipe.read(header_len).decode("utf-8")[:-1]
+        self.data = self.pipe.read(4)
+        self.header_len = get_bits_as_int_from_bam(self.pipe, 4)
+        self.header_text = self.pipe.read(self.header_len).decode("utf-8")[:-1]
         self.reference_sequences_count = get_bits_as_int_from_bam(self.pipe, 4)
 
         for x in range(self.reference_sequences_count):
