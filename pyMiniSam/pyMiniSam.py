@@ -27,15 +27,18 @@ class pyMiniSam(object):
         self.p = Popen(["gunzip", "-c", self.filename], stdout=PIPE)
         self.pipe = self.p.stdout
         self.data = self.pipe.read(4)
-        self.header_len = get_bits_as_int_from_bam(self.pipe, 4)
-        self.header_text = self.pipe.read(self.header_len).decode("utf-8")[:-1]
-        self.reference_sequences_count = get_bits_as_int_from_bam(self.pipe, 4)
+        try:
+            self.header_len = get_bits_as_int_from_bam(self.pipe, 4)
+            self.header_text = self.pipe.read(self.header_len).decode("utf-8")[:-1]
+            self.reference_sequences_count = get_bits_as_int_from_bam(self.pipe, 4)
 
-        for x in range(self.reference_sequences_count):
-            lname = get_bits_as_int_from_bam(self.pipe, 4)
-            ref_name = self.pipe.read(lname)[:-1]
-            ref_lengh = get_bits_as_int_from_bam(self.pipe, 4)
-            self.references[x] = {'name': ref_name.decode('utf-8'), 'length': ref_lengh}
+            for x in range(self.reference_sequences_count):
+                lname = get_bits_as_int_from_bam(self.pipe, 4)
+                ref_name = self.pipe.read(lname)[:-1]
+                ref_lengh = get_bits_as_int_from_bam(self.pipe, 4)
+                self.references[x] = {'name': ref_name.decode('utf-8'), 'length': ref_lengh}
+        except Exception as e:
+            print(e)
 
     def get_reads(self):
         count = 0
