@@ -4,8 +4,8 @@ from subprocess import Popen, PIPE
 
 import pyximport
 pyximport.install()
-from pyMiniSam.sam_functions import get_bits_as_int_from_bam
-from pyMiniSam.sam_functions import get_read
+from sam_functions import get_bits_as_int_from_bam
+from sam_functions import get_read
 
 
 def parse_arguments(parser=None):
