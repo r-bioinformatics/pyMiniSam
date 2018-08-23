@@ -9,7 +9,7 @@ ext_modules = []
 if USE_CYTHON:
     try:
         from Cython.Distutils import build_ext
-    except ImportError:
+    except ImportError or ModuleNotFoundError:
         if USE_CYTHON == 'auto':
             USE_CYTHON = False
         else:
