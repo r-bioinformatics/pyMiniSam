@@ -36,5 +36,5 @@ setup(name='pyMiniSam',
       packages=['pyMiniSam'],
       zip_safe=False,
       ext_modules=cythonize(ext_modules, annotate=True),
-      test_deps=['Cython'],
+      install_requires=['Cython'],
 )
