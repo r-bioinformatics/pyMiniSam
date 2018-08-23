@@ -3,11 +3,23 @@ from Cython.Build import cythonize
 from setuptools.extension import Extension
 USE_CYTHON = True
 
+def install_and_import(package):
+    import importlib
+    try:
+        importlib.import_module(package)
+    except ImportError:
+        import pip
+        pip.main(['install', package])
+    finally:
+        globals()[package] = importlib.import_module(package)
+
+
 cmd_class = {}
 ext_modules = []
 
 if USE_CYTHON:
     try:
+        install_and_import("cython")
         from Cython.Distutils import build_ext
     except ImportError or ModuleNotFoundError:
         if USE_CYTHON == 'auto':
