@@ -26,5 +26,11 @@ class AlignedRead(object):
         self.qual = qual
 
     def __repr__(self):
-        return f"{self.read_name.decode('utf-8')}\t{self.flag}\t{self.ref.decode('utf-8')}\t" \
-               f"{self.coord}\t{self.mapq}\t{self.seq.decode('utf-8')}\t{self.qual.decode('utf-8')}\t{self.cigar.decode('utf-8')}"
+        return f"{self.read_name.decode('utf-8')}\t" \
+               f"{self.flag}\t" \
+               f"{self.ref.decode('utf-8')}\t" \
+               f"{self.coord}\t" \
+               f"{self.mapq}\t" \
+               f"{self.seq.decode('utf-8')}\t" \
+               f"{self.qual.decode('utf-8')}\t" \
+               f"{self.cigar.decode('utf-8')}"
